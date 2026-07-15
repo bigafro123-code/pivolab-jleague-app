@@ -1311,25 +1311,7 @@ export default function JLeagueTicketApp() {
                 {selectedTeam.name}
               </div>
             </div>
-            {selectedTeam.id === 'nagoya' && (
-              <span
-                style={{
-                  flexShrink: 0,
-                  fontFamily: "'Oswald', sans-serif",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  color: '#0F1F16',
-                  background: '#0071e3',
-                  borderRadius: 4,
-                  padding: '3px 6px',
-                  alignSelf: 'flex-start',
-                }}
-              >
-                実データ 7/11時点
-              </span>
-            )}
-            {selectedTeam.id !== 'nagoya' && REAL_SCHEDULES[selectedTeam.id] && (
+            {(selectedTeam.id === 'nagoya' || REAL_SCHEDULES[selectedTeam.id]) && (
               <span
                 style={{
                   flexShrink: 0,
@@ -1433,3 +1415,4 @@ export default function JLeagueTicketApp() {
     </div>
   );
 }
+ 
