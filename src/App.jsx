@@ -864,16 +864,23 @@ function TravelPromo({ fixture, team }) {
   // ため、楽天の旧検索窓で起きた文字化け(EUC-JP問題)は発生しない。
   const agodaAffiliateUrl = buildAgodaAffiliateUrl(fixture.host.id);
 
+  // Yahoo!路線情報は from=/to= パラメータで出発駅・到着駅を指定した検索結果へ
+  // 直接リンクできる(公式ドキュメントはないが、長年安定して使われている形式)。
+  // 出発駅・到着駅を試合ごとに動的に切り替える。
+  const departStation = origin.label || team.stadium;
+  const arriveStation = fixture.host.travelOrigin ? fixture.host.travelOrigin.label : fixture.host.stadium;
+  const transitSearchUrl = `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(departStation)}&to=${encodeURIComponent(arriveStation)}`;
+
   const links = [
     {
       label: `${fixture.host.travelOrigin ? fixture.host.travelOrigin.label : fixture.host.short}周辺のホテルを探す(Agoda)`,
       url: agodaAffiliateUrl,
     },
     {
-      label: '新幹線・列車の時刻を調べる',
-      // 正式なアフィリエイト提携(バリューコマース経由)は未登録のため、まずは実在する
-      // えきねっと公式サイトへの直リンク(アフィリエイト報酬は発生しない)
-      url: 'https://www.eki-net.com/',
+      label: `${departStation}→${arriveStation}の乗換・時刻を調べる`,
+      // 正式なアフィリエイト提携は無いため報酬は発生しないが、Yahoo!路線情報の
+      // 検索結果ページへ出発駅・到着駅を指定して直接遷移できる
+      url: transitSearchUrl,
     },
   ];
 
