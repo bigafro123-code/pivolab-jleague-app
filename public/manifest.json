@@ -1,0 +1,26 @@
+{
+  "name": "Matchday Ticket Tracker",
+  "short_name": "TicketTracker",
+  "description": "Jリーグの試合日程・チケット発売日・遠征費用を確認できるサポーター向けツール",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbfbfd",
+  "theme_color": "#0071e3",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
