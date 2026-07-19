@@ -672,6 +672,21 @@ const REAL_SCHEDULES = {
   ],
 };
 
+// ---- 遠征記録(スタンプラリー)の対象スタジアム一覧 ------------------------
+// 各クラブの本拠地に加え、venueOverride(MUFGスタジアム等の特別会場)で
+// 実際に試合が行われるスタジアムも「制覇」対象に含める。
+// 1チームの試合が複数のスタジアムに分かれるケース(本拠地+特別会場)があるため、
+// チーム単位ではなく実際の開催スタジアム名で重複排除する。
+const ALL_STADIUM_NAMES = Array.from(
+  new Set([
+    ...TEAMS.map((t) => t.stadium),
+    ...Object.values(REAL_SCHEDULES)
+      .flat()
+      .map((e) => e.venueOverride)
+      .filter(Boolean),
+  ])
+);
+
 // 試合日程は実データ、発売日は判明分のみ実データ・それ以外は「未発表」として組み立てる汎用関数
 function buildFixturesFromRealSchedule(team, schedule) {
   return schedule.map((entry) => {
@@ -1075,16 +1090,13 @@ function FixtureStub({ fixture, team }) {
       setVisitedLog(log.filter((r) => r.key !== visitedKey));
       setIsVisited(false);
     } else {
-      const cost = isHome ? 0 : computeTravelEstimate(team, fixture).estimate.train.total;
       const record = {
         key: visitedKey,
         teamId: team.id,
-        stadiumId: host.id,
-        stadiumName: host.stadium,
+        stadiumName: stadium,
         opponentName: opponent.name,
         isHome,
         date: matchDate.toISOString().slice(0, 10),
-        cost,
       };
       setVisitedLog([...log, record]);
       setIsVisited(true);
@@ -1414,8 +1426,7 @@ function FixtureStub({ fixture, team }) {
 function TravelRecords({ onBack }) {
   const [log, setLog] = useState(() => getVisitedLog());
 
-  const visitedStadiumIds = new Set(log.map((r) => r.stadiumId));
-  const totalCost = log.reduce((sum, r) => sum + (r.cost || 0), 0);
+  const visitedStadiumNames = new Set(log.map((r) => r.stadiumName));
   const awayCount = log.filter((r) => !r.isHome).length;
 
   const handleRemove = (key) => {
@@ -1462,7 +1473,8 @@ function TravelRecords({ onBack }) {
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <div style={{ flex: 1, borderRadius: 12, border: '1px solid #d2d2d7', background: '#ffffff', padding: 14, textAlign: 'center' }}>
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 700, color: '#0071e3' }}>
-            {visitedStadiumIds.size}<span style={{ fontSize: 14, color: '#86868b' }}>/20</span>
+            {visitedStadiumNames.size}
+            <span style={{ fontSize: 14, color: '#86868b' }}>/{ALL_STADIUM_NAMES.length}</span>
           </div>
           <div style={{ fontSize: 11, color: '#6e6e73', marginTop: 2 }}>スタジアム制覇</div>
         </div>
@@ -1472,34 +1484,26 @@ function TravelRecords({ onBack }) {
           </div>
           <div style={{ fontSize: 11, color: '#6e6e73', marginTop: 2 }}>アウェイ遠征回数</div>
         </div>
-        <div style={{ flex: 1, borderRadius: 12, border: '1px solid #d2d2d7', background: '#ffffff', padding: 14, textAlign: 'center' }}>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 17, fontWeight: 700, color: '#1d1d1f' }}>
-            {formatYen(totalCost)}
-          </div>
-          <div style={{ fontSize: 11, color: '#6e6e73', marginTop: 2 }}>遠征費用合計(概算)</div>
-        </div>
       </div>
 
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          display: 'flex',
+          flexWrap: 'wrap',
           gap: 8,
           marginBottom: 24,
         }}
       >
-        {TEAMS.map((t) => {
-          const visited = visitedStadiumIds.has(t.id);
+        {ALL_STADIUM_NAMES.map((name) => {
+          const visited = visitedStadiumNames.has(name);
           return (
             <div
-              key={t.id}
-              title={t.stadium}
+              key={name}
               style={{
                 borderRadius: 10,
                 border: visited ? 'none' : '1px solid #d2d2d7',
-                background: visited ? t.color : '#f5f5f7',
-                padding: '10px 4px',
-                textAlign: 'center',
+                background: visited ? '#0071e3' : '#f5f5f7',
+                padding: '8px 10px',
               }}
             >
               <div
@@ -1509,7 +1513,7 @@ function TravelRecords({ onBack }) {
                   color: visited ? '#ffffff' : '#86868b',
                 }}
               >
-                {t.short}
+                {name}
               </div>
             </div>
           );
@@ -1538,10 +1542,7 @@ function TravelRecords({ onBack }) {
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f' }}>
                   {r.date} ・ {r.isHome ? 'HOME' : 'AWAY'} vs {r.opponentName}
                 </div>
-                <div style={{ fontSize: 11, color: '#6e6e73' }}>
-                  {r.stadiumName}
-                  {r.cost > 0 && ` ・ 往復${formatYen(r.cost)}`}
-                </div>
+                <div style={{ fontSize: 11, color: '#6e6e73' }}>{r.stadiumName}</div>
               </div>
               <button
                 onClick={() => handleRemove(r.key)}
