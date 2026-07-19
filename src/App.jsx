@@ -84,6 +84,34 @@ function setStoredDefaultTeamId(id) {
   }
 }
 
+// ---- 遠征記録(スタンプラリー)の保存/読込 ---------------------------------
+// 「行った試合」を端末内(localStorage)に記録する。サーバーには送信しない。
+const VISITED_LOG_STORAGE_KEY = 'pivolab-jleague-visited-log';
+
+function getVisitedLog() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return [];
+    const raw = window.localStorage.getItem(VISITED_LOG_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function setVisitedLog(log) {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    window.localStorage.setItem(VISITED_LOG_STORAGE_KEY, JSON.stringify(log));
+  } catch (e) {
+    // 保存できなくても致命的ではないので無視する
+  }
+}
+
+function makeVisitedKey(team, fixture) {
+  const dateStr = fixture.matchDate.toISOString().slice(0, 10);
+  return `${team.id}_${fixture.opponent.id}_${dateStr}`;
+}
+
 // team_id / 短縮名からクラブ情報を解決する
 function resolveClub(ref) {
   const byId = TEAMS.find((t) => t.id === ref);
@@ -850,9 +878,9 @@ const REAL_TRAIN_FARES = {
   'gamba-fukuoka': { oneWayFare: 16620, oneWayHours: 2.37 + 0.2, note: '新幹線のぞみ/みずほ指定席の実運賃(新大阪-博多)＋博多駅-スタジアム間の在来線目安を合算' },
 };
 
-function TravelPromo({ fixture, team }) {
+// チームと試合から、往復の運賃見積もり(実データ優先)を計算する共通関数
+function computeTravelEstimate(team, fixture) {
   const origin = team.travelOrigin || { label: team.stadium, coords: team.coords };
-  const dateLabel = formatDate(fixture.matchDate);
   const realFare = REAL_TRAIN_FARES[`${team.id}-${fixture.host.id}`];
   const estimate = realFare
     ? {
@@ -865,6 +893,12 @@ function TravelPromo({ fixture, team }) {
         },
       }
     : estimateTravel(origin.coords, fixture.host.coords);
+  return { origin, estimate };
+}
+
+function TravelPromo({ fixture, team }) {
+  const { origin, estimate } = computeTravelEstimate(team, fixture);
+  const dateLabel = formatDate(fixture.matchDate);
 
   // A8.net経由のAgodaアフィリエイトリンク。行き先の都市を、対戦相手のスタジアム
   // 所在地(AGODA_CITY_SLUGS)に応じて動的に切り替える。都市名スラッグはASCIIの
@@ -1026,11 +1060,35 @@ function FixtureStub({ fixture, team }) {
   const onSale = status === 'onsale';
   const isPast = matchDate < TODAY_DATE_ONLY;
   const [added, setAdded] = useState(false);
+  const visitedKey = makeVisitedKey(team, fixture);
+  const [isVisited, setIsVisited] = useState(() => getVisitedLog().some((r) => r.key === visitedKey));
 
   const handleAddToCalendar = () => {
     downloadICS(fixture, team);
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
+  };
+
+  const handleToggleVisited = () => {
+    const log = getVisitedLog();
+    if (isVisited) {
+      setVisitedLog(log.filter((r) => r.key !== visitedKey));
+      setIsVisited(false);
+    } else {
+      const cost = isHome ? 0 : computeTravelEstimate(team, fixture).estimate.train.total;
+      const record = {
+        key: visitedKey,
+        teamId: team.id,
+        stadiumId: host.id,
+        stadiumName: host.stadium,
+        opponentName: opponent.name,
+        isHome,
+        date: matchDate.toISOString().slice(0, 10),
+        cost,
+      };
+      setVisitedLog([...log, record]);
+      setIsVisited(true);
+    }
   };
 
   return (
@@ -1043,7 +1101,7 @@ function FixtureStub({ fixture, team }) {
         background: '#ffffff',
         border: '1px solid #d2d2d7',
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        opacity: isPast ? 0.55 : 1,
+        opacity: isPast && !isVisited ? 0.55 : 1,
       }}
     >
       <div style={{ flex: 1, padding: 16, minWidth: 0 }}>
@@ -1081,6 +1139,30 @@ function FixtureStub({ fixture, team }) {
             </span>
           )}
         </div>
+
+        {isPast && (
+          <button
+            onClick={handleToggleVisited}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 10,
+              padding: '5px 10px',
+              borderRadius: 999,
+              cursor: 'pointer',
+              fontFamily: "'Oswald', sans-serif",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              border: isVisited ? 'none' : '1px solid #d2d2d7',
+              background: isVisited ? '#34c759' : 'transparent',
+              color: isVisited ? '#ffffff' : '#6e6e73',
+            }}
+          >
+            {isVisited ? '✓ 行った!' : 'この試合に行った?'}
+          </button>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
           <Calendar size={14} color="#0071e3" style={{ flexShrink: 0 }} />
@@ -1328,7 +1410,155 @@ function FixtureStub({ fixture, team }) {
   );
 }
 
+// ---- マイ遠征記録(スタンプラリー) ----------------------------------------
+function TravelRecords({ onBack }) {
+  const [log, setLog] = useState(() => getVisitedLog());
+
+  const visitedStadiumIds = new Set(log.map((r) => r.stadiumId));
+  const totalCost = log.reduce((sum, r) => sum + (r.cost || 0), 0);
+  const awayCount = log.filter((r) => !r.isHome).length;
+
+  const handleRemove = (key) => {
+    const newLog = log.filter((r) => r.key !== key);
+    setVisitedLog(newLog);
+    setLog(newLog);
+  };
+
+  const sortedLog = [...log].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  return (
+    <div style={{ padding: 16 }}>
+      <button
+        onClick={onBack}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#0071e3',
+          fontSize: 13,
+          fontWeight: 600,
+          marginBottom: 16,
+          padding: 0,
+        }}
+      >
+        ← 試合一覧に戻る
+      </button>
+
+      <h2
+        style={{
+          fontFamily: "'Oswald', sans-serif",
+          fontSize: 20,
+          fontWeight: 700,
+          marginBottom: 4,
+          color: '#1d1d1f',
+        }}
+      >
+        マイ遠征記録
+      </h2>
+      <p style={{ fontSize: 12, color: '#6e6e73', marginBottom: 20 }}>
+        「行った!」を押した試合が、この端末にだけ記録されます(他の人には見えません)。
+      </p>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div style={{ flex: 1, borderRadius: 12, border: '1px solid #d2d2d7', background: '#ffffff', padding: 14, textAlign: 'center' }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 700, color: '#0071e3' }}>
+            {visitedStadiumIds.size}<span style={{ fontSize: 14, color: '#86868b' }}>/20</span>
+          </div>
+          <div style={{ fontSize: 11, color: '#6e6e73', marginTop: 2 }}>スタジアム制覇</div>
+        </div>
+        <div style={{ flex: 1, borderRadius: 12, border: '1px solid #d2d2d7', background: '#ffffff', padding: 14, textAlign: 'center' }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 700, color: '#1d1d1f' }}>
+            {awayCount}
+          </div>
+          <div style={{ fontSize: 11, color: '#6e6e73', marginTop: 2 }}>アウェイ遠征回数</div>
+        </div>
+        <div style={{ flex: 1, borderRadius: 12, border: '1px solid #d2d2d7', background: '#ffffff', padding: 14, textAlign: 'center' }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 17, fontWeight: 700, color: '#1d1d1f' }}>
+            {formatYen(totalCost)}
+          </div>
+          <div style={{ fontSize: 11, color: '#6e6e73', marginTop: 2 }}>遠征費用合計(概算)</div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: 8,
+          marginBottom: 24,
+        }}
+      >
+        {TEAMS.map((t) => {
+          const visited = visitedStadiumIds.has(t.id);
+          return (
+            <div
+              key={t.id}
+              title={t.stadium}
+              style={{
+                borderRadius: 10,
+                border: visited ? 'none' : '1px solid #d2d2d7',
+                background: visited ? t.color : '#f5f5f7',
+                padding: '10px 4px',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: visited ? '#ffffff' : '#86868b',
+                }}
+              >
+                {t.short}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <h3 style={{ fontSize: 13, fontWeight: 700, color: '#1d1d1f', marginBottom: 10 }}>記録一覧</h3>
+      {sortedLog.length === 0 ? (
+        <p style={{ fontSize: 12, color: '#86868b' }}>まだ記録がありません。終了した試合のカードから「行った!」を押すと、ここに追加されます。</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sortedLog.map((r) => (
+            <div
+              key={r.key}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderRadius: 10,
+                border: '1px solid #d2d2d7',
+                background: '#ffffff',
+                padding: '10px 12px',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f' }}>
+                  {r.date} ・ {r.isHome ? 'HOME' : 'AWAY'} vs {r.opponentName}
+                </div>
+                <div style={{ fontSize: 11, color: '#6e6e73' }}>
+                  {r.stadiumName}
+                  {r.cost > 0 && ` ・ 往復${formatYen(r.cost)}`}
+                </div>
+              </div>
+              <button
+                onClick={() => handleRemove(r.key)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#86868b', fontSize: 11 }}
+              >
+                削除
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function JLeagueTicketApp() {
+  const [view, setView] = useState('fixtures'); // 'fixtures' | 'records'
   const [selectedId, setSelectedId] = useState(() => {
     const stored = getStoredDefaultTeamId();
     return stored && TEAMS.some((t) => t.id === stored) ? stored : TEAMS[0].id;
@@ -1403,26 +1633,47 @@ export default function JLeagueTicketApp() {
                 Matchday Ticket Tracker
               </span>
             </div>
-            <a
-              href="https://forms.gle/C37UmeQzK3DCSeWv9"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                flexShrink: 0,
-                color: '#0071e3',
-                textDecoration: 'none',
-                fontFamily: "'Oswald', sans-serif",
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: 0.5,
-              }}
-            >
-              <MessageCircle size={14} />
-              ご意見
-            </a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              <button
+                onClick={() => setView(view === 'records' ? 'fixtures' : 'records')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#0071e3',
+                  fontFamily: "'Oswald', sans-serif",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                  padding: 0,
+                }}
+              >
+                🏟️ 遠征記録
+              </button>
+              <a
+                href="https://forms.gle/C37UmeQzK3DCSeWv9"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  flexShrink: 0,
+                  color: '#0071e3',
+                  textDecoration: 'none',
+                  fontFamily: "'Oswald', sans-serif",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                }}
+              >
+                <MessageCircle size={14} />
+                ご意見
+              </a>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1508,6 +1759,10 @@ export default function JLeagueTicketApp() {
           </div>
         </div>
 
+        {view === 'records' ? (
+          <TravelRecords onBack={() => setView('fixtures')} />
+        ) : (
+          <>
         {/* 絞り込み */}
         <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -1580,6 +1835,8 @@ export default function JLeagueTicketApp() {
             </React.Fragment>
           ))}
         </div>
+          </>
+        )}
 
         <div style={{ padding: '8px 16px 32px', fontSize: 11, color: '#86868b', textAlign: 'center', lineHeight: 1.6 }}>
           ※ 対戦カードは全クラブ公式発表にもとづく実データです。チケット発売日は判明分のみ反映しており、未発表の試合は「発売日未定」と表示しています。運賃・移動時間は実データが確認できた区間以外、概算である旨を明記しています。実際のご購入・観戦計画にあたっては、必ず各クラブの公式発表をあわせてご確認ください。
