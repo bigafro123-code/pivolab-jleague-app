@@ -270,10 +270,12 @@ function downloadICS(fixture, team) {
 // (モックの仮日付は生成しない)。
 // 取得日時: 2026-07-11 / 出典: 横浜F・マリノス公式サイト
 const REAL_SCHEDULES = {
-  // 名古屋グランパス(8〜9月分)
+  // 名古屋グランパス(8〜10月分、他クラブとの整合を優先し他チーム基準を優先)
   // ホームゲームの発売日は公式サイトのチケット発売スケジュール表より実データを反映
   // 出典: https://nagoya-grampus.jp/ticket/schedule/ 取得日時: 2026-07-11
   // アウェイ戦の発売日は対戦相手クラブのページを個別調査(判明分のみ反映)
+  // 9節以降(10月分)は対戦相手クラブ側データ(kawasaki/kashiwa/cerezo/ynmarinos/kobe)と突き合わせて補完。
+  // 発売日は未確認のため反映せず「未発表」として扱う。
   nagoya: [
     { matchday: 1, isHome: true, opponentId: 'shimizu', date: '2026-08-08', kickoff: '19:00', saleDate: '2026-07-18T10:00:00+09:00' },
     { matchday: 2, isHome: false, opponentId: 'kashima', date: '2026-08-15', kickoff: '18:00', saleDate: '2026-07-24T10:00:00+09:00' },
@@ -283,6 +285,11 @@ const REAL_SCHEDULES = {
     { matchday: 6, isHome: true, opponentId: 'machida', date: '2026-09-06', kickoff: '18:00', saleDate: '2026-08-01T10:00:00+09:00' },
     { matchday: 7, isHome: false, opponentId: 'nagasaki', date: '2026-09-12' },
     { matchday: 8, isHome: false, opponentId: 'fctokyo', venueOverride: '国立競技場', date: '2026-09-19' },
+    { matchday: 9, isHome: false, opponentId: 'kawasaki', date: '2026-10-11', kickoff: '16:00' },
+    { matchday: 10, isHome: false, opponentId: 'kashiwa', date: '2026-10-17' },
+    { matchday: 11, isHome: true, opponentId: 'cerezo', date: '2026-10-21', kickoff: '19:00' },
+    { matchday: 12, isHome: true, opponentId: 'ynmarinos', date: '2026-10-24' },
+    { matchday: 13, isHome: false, opponentId: 'kobe', date: '2026-10-31' },
   ],
   // ホームゲームの発売日は公式発表(販売スケジュール、直近試合のみ順次公開)より実データを反映
   // 出典: https://www.f-marinos.com/ticket/schedule 取得日時: 2026-07-12
