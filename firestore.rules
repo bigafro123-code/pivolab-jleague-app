@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// 「みんなの行く予定」機能用のFirestoreセキュリティルール。
+// Firebaseコンソール > Firestore Database > ルール タブに貼り付けて公開する。
+//
+// ログイン不要の匿名カウンターのため、以下だけを許可する:
+// - 読み取りは誰でも可能(人数を表示するため)
+// - 書き込みは count フィールドのみ、かつ既存値から±1の増減のみ
+// - 負の値・他フィールドの追加・ドキュメント削除は禁止
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /attendance/{matchKey} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(['count'])
+                    && request.resource.data.count is int
+                    && request.resource.data.count >= 0
+                    && request.resource.data.count <= 1;
+
+      allow update: if request.resource.data.keys().hasOnly(['count'])
+                    && request.resource.data.count is int
+                    && request.resource.data.count >= 0
+                    && (request.resource.data.count == resource.data.count + 1
+                        || request.resource.data.count == resource.data.count - 1);
+
+      allow delete: if false;
+    }
+  }
+}

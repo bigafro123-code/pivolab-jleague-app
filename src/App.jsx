@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { Calendar, MapPin, Ticket, ExternalLink, CalendarPlus, Check, Star, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Calendar, MapPin, Ticket, ExternalLink, CalendarPlus, Check, Star, MessageCircle, Users } from 'lucide-react';
+import { doc, onSnapshot, setDoc, increment } from 'firebase/firestore';
+import { getDb, isFirebaseConfigured } from './firebase';
 
 // ---- モックデータ ----------------------------------------------------
 
@@ -110,6 +112,40 @@ function setVisitedLog(log) {
 function makeVisitedKey(team, fixture) {
   const dateStr = fixture.matchDate.toISOString().slice(0, 10);
   return `${team.id}_${fixture.opponent.id}_${dateStr}`;
+}
+
+// ---- みんなの行く予定(Firestoreでの匿名集計) ------------------------------
+// 同じ試合はホーム/アウェイ両クラブの視点で別々のfixtureとして存在するため、
+// チームIDをソートした組み合わせ+日付で「試合そのもの」を一意に特定するキーを作る。
+// これによりどちらのクラブページから見ても同じ集計を共有できる。
+function makeGlobalMatchKey(team, fixture) {
+  const dateStr = fixture.matchDate.toISOString().slice(0, 10);
+  const ids = [team.id, fixture.opponent.id].sort();
+  return `${ids[0]}_${ids[1]}_${dateStr}`;
+}
+
+// 「行く予定にした」試合を端末内(localStorage)に記録する。
+// ログイン機能が無いため、集計自体はFirestore側のcountで持つが、
+// この端末で既に押したかどうかの判定はローカルに保存して代用する。
+const GOING_LOG_STORAGE_KEY = 'pivolab-jleague-going-log';
+
+function getGoingLog() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return [];
+    const raw = window.localStorage.getItem(GOING_LOG_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function setGoingLog(log) {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    window.localStorage.setItem(GOING_LOG_STORAGE_KEY, JSON.stringify(log));
+  } catch (e) {
+    // 保存できなくても致命的ではないので無視する
+  }
 }
 
 // team_id / 短縮名からクラブ情報を解決する
@@ -1103,6 +1139,43 @@ function FixtureStub({ fixture, team }) {
     }
   };
 
+  const globalMatchKey = makeGlobalMatchKey(team, fixture);
+  const [goingCount, setGoingCount] = useState(null); // null = 未取得/未設定
+  const [isGoing, setIsGoing] = useState(() => getGoingLog().includes(globalMatchKey));
+
+  useEffect(() => {
+    if (isPast || !isFirebaseConfigured) return;
+    const db = getDb();
+    if (!db) return;
+    const ref = doc(db, 'attendance', globalMatchKey);
+    const unsubscribe = onSnapshot(
+      ref,
+      (snap) => setGoingCount(snap.exists() ? snap.data().count || 0 : 0),
+      () => setGoingCount(null)
+    );
+    return unsubscribe;
+  }, [globalMatchKey, isPast]);
+
+  const handleToggleGoing = async () => {
+    const db = getDb();
+    if (!db) return;
+    const log = getGoingLog();
+    const ref = doc(db, 'attendance', globalMatchKey);
+    try {
+      if (isGoing) {
+        await setDoc(ref, { count: increment(-1) }, { merge: true });
+        setGoingLog(log.filter((k) => k !== globalMatchKey));
+        setIsGoing(false);
+      } else {
+        await setDoc(ref, { count: increment(1) }, { merge: true });
+        setGoingLog([...log, globalMatchKey]);
+        setIsGoing(true);
+      }
+    } catch (e) {
+      // ネットワークエラー等は静かに諦める(致命的ではないため)
+    }
+  };
+
   return (
     <div
       style={{
@@ -1174,6 +1247,37 @@ function FixtureStub({ fixture, team }) {
           >
             {isVisited ? '✓ 行った!' : 'この試合に行った?'}
           </button>
+        )}
+
+        {!isPast && isFirebaseConfigured && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <button
+              onClick={handleToggleGoing}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '5px 10px',
+                borderRadius: 999,
+                cursor: 'pointer',
+                fontFamily: "'Oswald', sans-serif",
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: 0.5,
+                border: isGoing ? 'none' : '1px solid #d2d2d7',
+                background: isGoing ? '#0071e3' : 'transparent',
+                color: isGoing ? '#ffffff' : '#6e6e73',
+              }}
+            >
+              <Users size={12} />
+              {isGoing ? '行く予定にした!' : '行く予定にする'}
+            </button>
+            {goingCount !== null && goingCount > 0 && (
+              <span style={{ fontSize: 11, color: '#6e6e73' }}>
+                🙋 {goingCount}人が行く予定
+              </span>
+            )}
+          </div>
         )}
 
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
