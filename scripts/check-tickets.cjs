@@ -32,6 +32,9 @@ const CLUBS = [
   { teamId: 'verdy', url: 'https://www.verdy.co.jp/ticket/schedule/' },
   { teamId: 'kawasaki', url: 'https://www.frontale.co.jp/tickets/' },
   { teamId: 'kobe', url: 'https://www.vissel-kobe.co.jp/ticket/schedule/' },
+  // format: 'slash' = 「一般」の文字列が日付の近くになく、表の列位置(最後の日時)で
+  // 一般販売を判定する必要があるページ
+  { teamId: 'ynmarinos', url: 'https://www.f-marinos.com/ticket/schedule', format: 'slash' },
 ];
 
 // 対戦相手チームIDの表記ゆれ(ページ内テキストとの照合に使う)
@@ -68,7 +71,8 @@ async function fetchPageText(url) {
 }
 
 // テキストの中から「対戦相手名 ... 一般 ... M月D日 ... HH:MM」のパターンを探す
-function findSaleDateInText(text, opponentHints) {
+// (「一般」の文字列が日付の近くに書かれている、多くのクラブのページ向け)
+function findSaleDateKanjiFormat(text, opponentHints) {
   for (const hint of opponentHints) {
     const idx = text.indexOf(hint);
     if (idx === -1) continue;
@@ -87,6 +91,31 @@ function findSaleDateInText(text, opponentHints) {
     }
   }
   return null;
+}
+
+// 対戦相手名から「詳細はこちら」までの1試合分のブロックを切り出し、その中に
+// 並ぶ「M/D(曜)HH:MM」形式の日時のうち最後(=一次→二次→三次→一般の並び順で
+// 一番最後に出てくる一般販売)を採用する。「一般」という文字列が日付の近くに
+// 繰り返し書かれておらず、表の列位置だけで種別が分かるページ向け
+// (例: 横浜F・マリノス公式サイト)。
+function findSaleDateSlashFormat(text, opponentHints) {
+  for (const hint of opponentHints) {
+    const idx = text.indexOf(hint);
+    if (idx === -1) continue;
+    const blockEnd = text.indexOf('詳細は', idx);
+    if (blockEnd === -1) continue;
+    const windowText = text.slice(idx, blockEnd);
+
+    const matches = [...windowText.matchAll(/(\d{1,2})\/(\d{1,2})\([^)]{1}\)\s*(\d{1,2}):(\d{2})/g)];
+    if (matches.length === 0) continue;
+    const [, month, day, hour, minute] = matches[matches.length - 1];
+    return { month: Number(month), day: Number(day), hour: Number(hour), minute: Number(minute) };
+  }
+  return null;
+}
+
+function findSaleDateInText(text, opponentHints, format) {
+  return format === 'slash' ? findSaleDateSlashFormat(text, opponentHints) : findSaleDateKanjiFormat(text, opponentHints);
 }
 
 function resolveSaleYear(saleMonth, matchDateStr) {
@@ -142,7 +171,7 @@ async function main() {
       const hints = TEAM_NAME_HINTS[opponentId];
       if (!hints) continue;
 
-      const found = findSaleDateInText(pageText, hints);
+      const found = findSaleDateInText(pageText, hints, club.format);
       if (!found) continue;
 
       const jstIso = buildSaneSaleDate(found, dateStr);
