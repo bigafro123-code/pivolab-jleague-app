@@ -55,15 +55,28 @@ export default function TravelPromo({ fixture, team }) {
           cursor: 'pointer',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#48484d', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#48484d', minWidth: 0, flex: 1 }}>
           <span style={{ flexShrink: 0 }}>{modeLabel}</span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span
+            style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+            }}
+          >
             {origin.label}から 約{formatHours(estimate.train.oneWayHours)}
-            {' ・ '}
-            <b style={{ color: '#0071e3', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
-              {formatYen(estimate.train.total)}
-            </b>
-            (往復)
+          </span>
+          <span
+            style={{
+              flexShrink: 0,
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 700,
+              color: '#0071e3',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatYen(estimate.train.total)}(往復)
           </span>
         </div>
         <ChevronDown size={14} color="#86868b" style={{ flexShrink: 0 }} className="travel-promo-chevron" />
