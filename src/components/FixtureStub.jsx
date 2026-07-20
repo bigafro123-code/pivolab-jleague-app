@@ -324,9 +324,6 @@ export default function FixtureStub({ fixture, team }) {
               >
                 {host.name}の発表を確認 <ExternalLink size={14} />
               </a>
-              <div style={{ fontSize: 10, color: '#86868b', marginTop: 8, lineHeight: 1.5 }}>
-                ※ {fixture.note || `${host.name}側の発売告知がまだ出ていません。監視を継続し、告知が出次第自動的に反映します。`}
-              </div>
             </>
           ) : status === 'onsale' && !saleDate ? (
             <>

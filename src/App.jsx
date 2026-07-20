@@ -154,9 +154,7 @@ export default function JLeagueTicketApp() {
                   lineHeight: 1.3,
                 }}
               >
-                対戦カードは実データ
-                <br />
-                発売日は判明分のみ反映
+                チケット発売日は判明分のみ反映
               </span>
             )}
           </div>
