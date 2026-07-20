@@ -332,8 +332,9 @@ export const REAL_SCHEDULES = {
     { matchday: 13, isHome: true, opponentId: 'fctokyo', date: '2026-10-31', kickoff: '14:00', saleDate: '2026-10-02T12:00:00+09:00' },
   ],
   // アビスパ福岡(8〜10月分)
-  // ホームゲームの発売日は公式発表より実データを反映
-  // 出典: ユーザー提供情報 取得日時: 2026-07-12
+  // ホームゲームの発売日は公式発表(チケット発売スケジュール、画像形式)より実データを反映
+  // 出典: https://www.avispa.co.jp/tickets/ticket-schedule-26-27 取得日時: 2026-07-20
+  // スケジュール表が画像のため自動チェックスクリプトの対象外(岡山と同様)
   fukuoka: [
     { matchday: 1, isHome: true, opponentId: 'kobe', date: '2026-08-08', kickoff: '19:00', saleDate: '2026-07-12T10:00:00+09:00' },
     { matchday: 2, isHome: true, opponentId: 'cerezo', date: '2026-08-15', kickoff: '19:00', saleDate: '2026-07-19T10:00:00+09:00' },
