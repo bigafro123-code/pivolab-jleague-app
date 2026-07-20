@@ -1,5 +1,6 @@
 import { TEAMS } from '../data/teams';
 import { REAL_SCHEDULES } from '../data/schedules';
+import { resolveVenueName, VENUE_COORDS } from '../data/venues';
 import { TODAY, TODAY_DATE_ONLY, addDays, hashOffset } from './date';
 
 // team_id / 短縮名からクラブ情報を解決する
@@ -18,7 +19,14 @@ export function buildFixturesFromRealSchedule(team, schedule) {
     const host = entry.isHome ? team : opponent;
     const matchDate = new Date(`${entry.date}T00:00:00+09:00`);
     const kickoff = entry.kickoff || '未定';
-    const stadium = entry.venueOverride || (entry.isHome ? team.stadium : opponent.stadium);
+    const stadium = entry.venueOverride
+      ? resolveVenueName(entry.venueOverride)
+      : entry.isHome
+      ? team.stadium
+      : opponent.stadium;
+    // 特別会場(venueOverride)の場合、実際の開催地の座標を使う(無ければホームチームの
+    // 本拠地座標にフォールバック)。移動距離の概算・位置情報チェックインの精度に影響する。
+    const stadiumCoords = entry.venueOverride ? VENUE_COORDS[stadium] || host.coords : host.coords;
 
     if (entry.saleDate) {
       // 実際に告知されている発売日(クラブ公式のチケット発売スケジュール表より)
@@ -31,6 +39,7 @@ export function buildFixturesFromRealSchedule(team, schedule) {
         matchDate,
         kickoff,
         stadium,
+        stadiumCoords,
         saleDate,
         status: TODAY >= saleDate ? 'onsale' : 'upcoming',
         isRealData: true, // 試合日程・発売日ともに実データ
@@ -48,6 +57,7 @@ export function buildFixturesFromRealSchedule(team, schedule) {
       matchDate,
       kickoff,
       stadium,
+      stadiumCoords,
       saleDate: null,
       status: 'unknown',
       sourceUrl: host.ticketSystem ? host.ticketSystem.url : null,
@@ -113,6 +123,7 @@ export function buildFixtures(team) {
       matchDate,
       kickoff,
       stadium: host.stadium,
+      stadiumCoords: host.coords,
       saleDate,
       status: TODAY >= saleDate ? 'onsale' : 'upcoming',
       isRealData: false,

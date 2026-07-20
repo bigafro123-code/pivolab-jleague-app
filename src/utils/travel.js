@@ -92,10 +92,14 @@ export function estimateTravel(originCoords, destCoords) {
 // チームと試合から、往復の運賃見積もり(実データ優先)を計算する共通関数
 export function computeTravelEstimate(team, fixture) {
   const origin = team.travelOrigin || { label: team.stadium, coords: team.coords };
-  const realFare = REAL_TRAIN_FARES[`${team.id}-${fixture.host.id}`];
+  const destCoords = fixture.stadiumCoords || fixture.host.coords;
+  // 実運賃データは通常の本拠地区間を前提に調査したものなので、特別会場
+  // (venueOverride)の試合には適用せず、座標ベースの概算を使う。
+  const isSpecialVenue = fixture.stadium !== fixture.host.stadium;
+  const realFare = isSpecialVenue ? null : REAL_TRAIN_FARES[`${team.id}-${fixture.host.id}`];
   const estimate = realFare
     ? {
-        distanceKm: Math.round(haversineKm(origin.coords, fixture.host.coords)),
+        distanceKm: Math.round(haversineKm(origin.coords, destCoords)),
         train: {
           oneWayHours: realFare.oneWayHours,
           total: realFare.oneWayFare * 2,
@@ -103,6 +107,6 @@ export function computeTravelEstimate(team, fixture) {
           note: realFare.note,
         },
       }
-    : estimateTravel(origin.coords, fixture.host.coords);
+    : estimateTravel(origin.coords, destCoords);
   return { origin, estimate };
 }

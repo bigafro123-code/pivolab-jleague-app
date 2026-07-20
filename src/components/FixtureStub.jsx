@@ -16,7 +16,7 @@ import { CHECK_IN_THRESHOLD_KM, isGeolocationSupported, getCurrentCoords, distan
 import TravelPromo from './TravelPromo';
 
 export default function FixtureStub({ fixture, team }) {
-  const { opponent, isHome, host, matchDate, kickoff, stadium, saleDate, status } = fixture;
+  const { opponent, isHome, host, matchDate, kickoff, stadium, stadiumCoords, saleDate, status } = fixture;
   const onSale = status === 'onsale';
   const isPast = matchDate < TODAY_DATE_ONLY;
   const isToday = matchDate.getTime() === TODAY_DATE_ONLY.getTime();
@@ -63,7 +63,7 @@ export default function FixtureStub({ fixture, team }) {
     setCheckInMessage('');
     try {
       const userCoords = await getCurrentCoords();
-      const distanceKm = distanceToStadiumKm(userCoords, host.coords);
+      const distanceKm = distanceToStadiumKm(userCoords, stadiumCoords || host.coords);
       if (distanceKm <= CHECK_IN_THRESHOLD_KM) {
         if (!isVisited) handleToggleVisited();
         setCheckInStatus('idle');

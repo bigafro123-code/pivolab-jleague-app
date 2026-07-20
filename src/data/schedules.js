@@ -1,4 +1,5 @@
 import { TEAMS } from './teams';
+import { resolveVenueName } from './venues';
 
 export const REAL_SCHEDULES = {
   // 名古屋グランパス(8〜10月分、他クラブとの整合を優先し他チーム基準を優先)
@@ -376,16 +377,19 @@ export const REAL_SCHEDULES = {
 };
 
 // ---- 遠征記録(スタンプラリー)の対象スタジアム一覧 ------------------------
-// 各クラブの本拠地に加え、venueOverride(MUFGスタジアム等の特別会場)で
+// 各クラブの本拠地に加え、venueOverride(国立競技場等の特別会場)で
 // 実際に試合が行われるスタジアムも「制覇」対象に含める。
 // 1チームの試合が複数のスタジアムに分かれるケース(本拠地+特別会場)があるため、
 // チーム単位ではなく実際の開催スタジアム名で重複排除する。
+// venueOverrideは表記ゆれ(MUFG国立/MUFGスタジアム等)があるためresolveVenueNameで
+// 正規化してから重複排除する。
 export const ALL_STADIUM_NAMES = Array.from(
   new Set([
     ...TEAMS.map((t) => t.stadium),
     ...Object.values(REAL_SCHEDULES)
       .flat()
       .map((e) => e.venueOverride)
-      .filter(Boolean),
+      .filter(Boolean)
+      .map(resolveVenueName),
   ])
 );
