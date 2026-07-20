@@ -147,40 +147,64 @@ export default function FixtureStub({ fixture, team }) {
             {isHome ? 'HOME' : 'AWAY'}
           </span>
           <span style={{ fontSize: 12, color: '#6e6e73' }}>vs {opponent.name}</span>
-          {isPast && (
-            <span
-              style={{
-                fontFamily: "'Oswald', sans-serif",
-                fontWeight: 700,
-                fontSize: 10,
-                letterSpacing: 1,
-                padding: '2px 7px',
-                borderRadius: 4,
-                background: '#f5f5f7',
-                color: '#86868b',
-                marginLeft: 'auto',
-              }}
-            >
-              終了
-            </span>
-          )}
-          {isToday && (
-            <span
-              style={{
-                fontFamily: "'Oswald', sans-serif",
-                fontWeight: 700,
-                fontSize: 10,
-                letterSpacing: 1,
-                padding: '2px 7px',
-                borderRadius: 4,
-                background: '#fff4d6',
-                color: '#a86b00',
-                marginLeft: 'auto',
-              }}
-            >
-              本日開催
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+            {isPast && (
+              <span
+                style={{
+                  fontFamily: "'Oswald', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  background: '#f5f5f7',
+                  color: '#86868b',
+                }}
+              >
+                終了
+              </span>
+            )}
+            {isToday && (
+              <span
+                style={{
+                  fontFamily: "'Oswald', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  background: '#fff4d6',
+                  color: '#a86b00',
+                }}
+              >
+                本日開催
+              </span>
+            )}
+            {!isPast && isFirebaseConfigured && (
+              <button
+                onClick={handleToggleGoing}
+                title={isGoing ? '行く予定を取り消す' : '行く予定にする'}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: goingCount ? '3px 8px 3px 6px' : '3px 6px',
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  border: isGoing ? 'none' : '1px solid #d2d2d7',
+                  background: isGoing ? '#0071e3' : 'transparent',
+                  color: isGoing ? '#ffffff' : '#6e6e73',
+                }}
+              >
+                <Users size={11} />
+                {goingCount !== null && goingCount > 0 && (
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, fontWeight: 700 }}>
+                    {goingCount}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
         {(isPast || isToday) && (
@@ -239,50 +263,15 @@ export default function FixtureStub({ fixture, team }) {
           </div>
         )}
 
-        {!isPast && isFirebaseConfigured && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <button
-              onClick={handleToggleGoing}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '5px 10px',
-                borderRadius: 999,
-                cursor: 'pointer',
-                fontFamily: "'Oswald', sans-serif",
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: 0.5,
-                border: isGoing ? 'none' : '1px solid #d2d2d7',
-                background: isGoing ? '#0071e3' : 'transparent',
-                color: isGoing ? '#ffffff' : '#6e6e73',
-              }}
-            >
-              <Users size={12} />
-              {isGoing ? '行く予定にした!' : '行く予定にする'}
-            </button>
-            {goingCount !== null && goingCount > 0 && (
-              <span style={{ fontSize: 11, color: '#6e6e73' }}>
-                🙋 {goingCount}人が行く予定
-              </span>
-            )}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-          <Calendar size={14} color="#0071e3" style={{ flexShrink: 0 }} />
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', margin: '10px 0 12px', fontSize: 12.5, color: '#48484d' }}>
+          <Calendar size={12} color="#6e6e73" style={{ flexShrink: 0 }} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: '#1d1d1f' }}>
             {formatDate(matchDate)}
           </span>
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#1d1d1f' }}>
-            {kickoff} キックオフ
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12, color: '#6e6e73' }}>
-          <MapPin size={13} style={{ flexShrink: 0 }} />
-          <span>{stadium}</span>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#6e6e73' }}>{kickoff}</span>
+          <span style={{ color: '#c7c7cc' }}>・</span>
+          <MapPin size={12} color="#6e6e73" style={{ flexShrink: 0 }} />
+          <span style={{ color: '#6e6e73' }}>{stadium}</span>
         </div>
 
         <div style={{ borderTop: '1px dashed #d2d2d7', paddingTop: 12 }}>
@@ -322,7 +311,7 @@ export default function FixtureStub({ fixture, team }) {
                   justifyContent: 'center',
                   gap: 6,
                   width: '100%',
-                  padding: '10px',
+                  padding: '6px 10px',
                   borderRadius: 8,
                   textDecoration: 'none',
                   fontFamily: "'Oswald', sans-serif",
@@ -377,7 +366,7 @@ export default function FixtureStub({ fixture, team }) {
                   justifyContent: 'center',
                   gap: 6,
                   width: '100%',
-                  padding: '10px',
+                  padding: '6px 10px',
                   borderRadius: 8,
                   textDecoration: 'none',
                   fontFamily: "'Oswald', sans-serif",
@@ -434,7 +423,7 @@ export default function FixtureStub({ fixture, team }) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 6,
-                    padding: '10px',
+                    padding: '6px 10px',
                     borderRadius: 8,
                     textDecoration: 'none',
                     fontFamily: "'Oswald', sans-serif",
@@ -455,7 +444,7 @@ export default function FixtureStub({ fixture, team }) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 6,
-                padding: '10px',
+                padding: '6px 10px',
                 borderRadius: 8,
                 border: '1px solid #d2d2d7',
                 cursor: 'pointer',

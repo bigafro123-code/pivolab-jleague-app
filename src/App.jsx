@@ -55,6 +55,8 @@ export default function JLeagueTicketApp() {
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap');
         * { box-sizing: border-box; }
         a:focus-visible, button:focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }
+        summary::-webkit-details-marker { display: none; }
+        details[open] > summary .travel-promo-chevron { transform: rotate(180deg); }
       `}</style>
 
       <div style={{ maxWidth: 480, margin: '0 auto' }}>

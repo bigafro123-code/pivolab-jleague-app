@@ -1,10 +1,9 @@
+import { ChevronDown } from 'lucide-react';
 import { buildAgodaAffiliateUrl } from '../data/teams';
-import { formatDate } from '../utils/date';
 import { computeTravelEstimate, formatHours, formatYen } from '../utils/travel';
 
 export default function TravelPromo({ fixture, team }) {
   const { origin, estimate } = computeTravelEstimate(team, fixture);
-  const dateLabel = formatDate(fixture.matchDate);
 
   // A8.net経由のAgodaアフィリエイトリンク。行き先の都市を、対戦相手のスタジアム
   // 所在地(AGODA_CITY_SLUGS)に応じて動的に切り替える。都市名スラッグはASCIIの
@@ -32,131 +31,117 @@ export default function TravelPromo({ fixture, team }) {
     },
   ];
 
+  const modeLabel = estimate.train.isLocalHop ? '🚃' : '🚄';
+  const noteText = estimate.train.isOfficial
+    ? estimate.train.note
+    : estimate.train.isLocalHop
+    ? '近距離のため新幹線を使わない在来線移動として概算しています。実際の経路・料金とは異なる場合があります。'
+    : '移動時間・費用は直線距離をもとにした概算です(実運賃2点で校正済み)。実際の経路・料金とは異なる場合があります。';
+
   return (
-    <div
-      style={{
-        marginTop: 10,
-        borderRadius: 10,
-        border: '1px solid #d2d2d7',
-        background: '#f5f5f7',
-        padding: 12,
-      }}
-    >
-      <div style={{ fontSize: 11, color: '#6e6e73', marginBottom: 8 }}>
-        {origin.label} から約 {estimate.distanceKm}km{estimate.train.isLocalHop ? '(近隣)' : '(概算)'}
-      </div>
-
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ borderRadius: 8, background: '#ffffff', border: '1px solid #d2d2d7', padding: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: '#1d1d1f' }}>
-              {estimate.train.isLocalHop ? '🚃 在来線(往復)' : '🚄 電車(往復)'}
-            </div>
-            {estimate.train.isOfficial && (
-              <span
-                style={{
-                  fontFamily: "'Oswald', sans-serif",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: 0.5,
-                  color: '#0F1F16',
-                  background: '#34c759',
-                  borderRadius: 4,
-                  padding: '2px 6px',
-                }}
-              >
-                正規運賃
-              </span>
-            )}
-          </div>
-          {estimate.train.isOfficial ? (
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#6e6e73', lineHeight: 1.7 }}>
-              片道 約{formatHours(estimate.train.oneWayHours)}
-              <br />
-              <span style={{ color: '#0071e3', fontWeight: 700 }}>往復 {formatYen(estimate.train.total)}</span>
-            </div>
-          ) : estimate.train.isLocalHop ? (
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#6e6e73', lineHeight: 1.7 }}>
-              片道 約{formatHours(estimate.train.oneWayHours)}
-              <br />
-              <span style={{ color: '#0071e3', fontWeight: 700 }}>合計 {formatYen(estimate.train.total)}</span>
-            </div>
-          ) : (
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#6e6e73', lineHeight: 1.7 }}>
-              片道 約{formatHours(estimate.train.oneWayHours)}
-              <br />
-              新幹線 {formatYen(estimate.train.shinkansen)}
-              <br />
-              在来線等 {formatYen(estimate.train.local)}
-              <br />
-              <span style={{ color: '#0071e3', fontWeight: 700 }}>合計 {formatYen(estimate.train.total)}</span>
-            </div>
-          )}
-          {estimate.train.isOfficial && (
-            <div style={{ fontSize: 10, color: '#86868b', marginTop: 6, lineHeight: 1.5 }}>※ {estimate.train.note}</div>
-          )}
+    <details style={{ marginTop: 8 }}>
+      <summary
+        style={{
+          listStyle: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          width: '100%',
+          padding: '10px 12px',
+          borderRadius: 10,
+          background: '#f5f5f7',
+          border: '1px solid #d2d2d7',
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#48484d', minWidth: 0 }}>
+          <span style={{ flexShrink: 0 }}>{modeLabel}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {origin.label}から 約{formatHours(estimate.train.oneWayHours)}
+            {' ・ '}
+            <b style={{ color: '#0071e3', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
+              {formatYen(estimate.train.total)}
+            </b>
+            (往復)
+          </span>
         </div>
-      </div>
+        <ChevronDown size={14} color="#86868b" style={{ flexShrink: 0 }} className="travel-promo-chevron" />
+      </summary>
 
-      {!estimate.train.isLocalHop && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <span
-              style={{
-                fontFamily: "'Oswald', sans-serif",
-                fontSize: 9,
-                letterSpacing: 1,
-                color: '#0F1F16',
-                background: '#0071e3',
-                borderRadius: 4,
-                padding: '1px 6px',
-              }}
-            >
-              PR
-            </span>
-            <span style={{ fontSize: 11, color: '#6e6e73' }}>{fixture.stadium}への遠征を計画する</span>
+      <div
+        style={{
+          padding: '10px 12px 12px',
+          marginTop: -1,
+          borderRadius: '0 0 10px 10px',
+          background: '#f5f5f7',
+          border: '1px solid #d2d2d7',
+          borderTop: 'none',
+        }}
+      >
+        {estimate.train.isOfficial && (
+          <span
+            style={{
+              display: 'inline-block',
+              fontFamily: "'Oswald', sans-serif",
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              color: '#0F1F16',
+              background: '#34c759',
+              borderRadius: 4,
+              padding: '2px 6px',
+              marginBottom: 6,
+            }}
+          >
+            正規運賃
+          </span>
+        )}
+        {!estimate.train.isOfficial && !estimate.train.isLocalHop && (
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: '#6e6e73', lineHeight: 1.7, marginBottom: 6 }}>
+            新幹線 {formatYen(estimate.train.shinkansen)}・在来線等 {formatYen(estimate.train.local)}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {links.map((l) => (
-              <a
-                key={l.label}
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                style={{
-                  flex: 1,
-                  textAlign: 'center',
-                  padding: '8px',
-                  borderRadius: 8,
-                  border: '1px solid #d2d2d7',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  color: '#1d1d1f',
-                }}
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
-          {/* A8.net計測用ピクセル(Agodaリンクの表示計測) */}
-          <img
-            border="0"
-            width="1"
-            height="1"
-            src="https://www15.a8.net/0.gif?a8mat=4B83CZ+2EXB3M+4X1W+BW8O2"
-            alt=""
-            style={{ position: 'absolute', width: 1, height: 1 }}
-          />
-        </>
-      )}
-      {!estimate.train.isOfficial && (
-        <div style={{ fontSize: 10, color: '#86868b', marginTop: 8, lineHeight: 1.5 }}>
-          {estimate.train.isLocalHop
-            ? '※ 近距離のため新幹線を使わない在来線移動として概算しています。実際の経路・料金とは異なる場合があります。'
-            : '※ 移動時間・費用は直線距離をもとにした概算です(実運賃2点で校正済み)。実際の経路・料金とは異なる場合があります。'}
-        </div>
-      )}
-    </div>
+        )}
+        <div style={{ fontSize: 10, color: '#86868b', lineHeight: 1.5 }}>※ {noteText}</div>
+
+        {!estimate.train.isLocalHop && (
+          <>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              {links.map((l) => (
+                <a
+                  key={l.label}
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    padding: 8,
+                    borderRadius: 8,
+                    border: '1px solid #d2d2d7',
+                    background: '#ffffff',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    color: '#1d1d1f',
+                  }}
+                >
+                  {l.label}
+                </a>
+              ))}
+            </div>
+            {/* A8.net計測用ピクセル(Agodaリンクの表示計測) */}
+            <img
+              border="0"
+              width="1"
+              height="1"
+              src="https://www15.a8.net/0.gif?a8mat=4B83CZ+2EXB3M+4X1W+BW8O2"
+              alt=""
+              style={{ position: 'absolute', width: 1, height: 1 }}
+            />
+          </>
+        )}
+      </div>
+    </details>
   );
 }
