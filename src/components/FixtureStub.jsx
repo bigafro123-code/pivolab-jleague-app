@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, MapPin, ExternalLink, CalendarPlus, Check, Users } from 'lucide-react';
+import { Calendar, MapPin, ExternalLink, CalendarPlus, Check, Users, LocateFixed } from 'lucide-react';
 import { doc, onSnapshot, setDoc, increment } from 'firebase/firestore';
 import { getDb, isFirebaseConfigured } from '../firebase';
 import { TODAY_DATE_ONLY, formatDate } from '../utils/date';
@@ -12,12 +12,14 @@ import {
   makeGlobalMatchKey,
 } from '../utils/storage';
 import { downloadICS } from '../utils/ics';
+import { CHECK_IN_THRESHOLD_KM, isGeolocationSupported, getCurrentCoords, distanceToStadiumKm } from '../utils/geo';
 import TravelPromo from './TravelPromo';
 
 export default function FixtureStub({ fixture, team }) {
   const { opponent, isHome, host, matchDate, kickoff, stadium, saleDate, status } = fixture;
   const onSale = status === 'onsale';
   const isPast = matchDate < TODAY_DATE_ONLY;
+  const isToday = matchDate.getTime() === TODAY_DATE_ONLY.getTime();
   const [added, setAdded] = useState(false);
   const visitedKey = makeVisitedKey(team, fixture);
   const [isVisited, setIsVisited] = useState(() => getVisitedLog().some((r) => r.key === visitedKey));
@@ -44,6 +46,37 @@ export default function FixtureStub({ fixture, team }) {
       };
       setVisitedLog([...log, record]);
       setIsVisited(true);
+    }
+  };
+
+  // 'idle' | 'checking' | 'far' | 'error'
+  const [checkInStatus, setCheckInStatus] = useState('idle');
+  const [checkInMessage, setCheckInMessage] = useState('');
+
+  const handleLocationCheckIn = async () => {
+    if (!isGeolocationSupported()) {
+      setCheckInStatus('error');
+      setCheckInMessage('この端末では位置情報を利用できません');
+      return;
+    }
+    setCheckInStatus('checking');
+    setCheckInMessage('');
+    try {
+      const userCoords = await getCurrentCoords();
+      const distanceKm = distanceToStadiumKm(userCoords, host.coords);
+      if (distanceKm <= CHECK_IN_THRESHOLD_KM) {
+        if (!isVisited) handleToggleVisited();
+        setCheckInStatus('idle');
+        setCheckInMessage('');
+      } else {
+        setCheckInStatus('far');
+        setCheckInMessage(`スタジアムから約${distanceKm.toFixed(1)}km離れています`);
+      }
+    } catch (e) {
+      setCheckInStatus('error');
+      setCheckInMessage(
+        e && e.code === 1 ? '位置情報の利用が許可されていません' : '位置情報を取得できませんでした'
+      );
     }
   };
 
@@ -131,30 +164,79 @@ export default function FixtureStub({ fixture, team }) {
               終了
             </span>
           )}
+          {isToday && (
+            <span
+              style={{
+                fontFamily: "'Oswald', sans-serif",
+                fontWeight: 700,
+                fontSize: 10,
+                letterSpacing: 1,
+                padding: '2px 7px',
+                borderRadius: 4,
+                background: '#fff4d6',
+                color: '#a86b00',
+                marginLeft: 'auto',
+              }}
+            >
+              本日開催
+            </span>
+          )}
         </div>
 
-        {isPast && (
-          <button
-            onClick={handleToggleVisited}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              marginBottom: 10,
-              padding: '5px 10px',
-              borderRadius: 999,
-              cursor: 'pointer',
-              fontFamily: "'Oswald', sans-serif",
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: 0.5,
-              border: isVisited ? 'none' : '1px solid #d2d2d7',
-              background: isVisited ? '#34c759' : 'transparent',
-              color: isVisited ? '#ffffff' : '#6e6e73',
-            }}
-          >
-            {isVisited ? '✓ 行った!' : 'この試合に行った?'}
-          </button>
+        {(isPast || isToday) && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={handleToggleVisited}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 10px',
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  fontFamily: "'Oswald', sans-serif",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                  border: isVisited ? 'none' : '1px solid #d2d2d7',
+                  background: isVisited ? '#34c759' : 'transparent',
+                  color: isVisited ? '#ffffff' : '#6e6e73',
+                }}
+              >
+                {isVisited ? '✓ 行った!' : 'この試合に行った?'}
+              </button>
+
+              {isToday && !isVisited && (
+                <button
+                  onClick={handleLocationCheckIn}
+                  disabled={checkInStatus === 'checking'}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '5px 10px',
+                    borderRadius: 999,
+                    cursor: checkInStatus === 'checking' ? 'default' : 'pointer',
+                    fontFamily: "'Oswald', sans-serif",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                    border: '1px solid #0071e3',
+                    background: 'transparent',
+                    color: '#0071e3',
+                    opacity: checkInStatus === 'checking' ? 0.6 : 1,
+                  }}
+                >
+                  <LocateFixed size={12} />
+                  {checkInStatus === 'checking' ? '現在地を確認中…' : '現在地からチェックイン'}
+                </button>
+              )}
+            </div>
+            {checkInMessage && (
+              <div style={{ fontSize: 10, color: '#86868b', marginTop: 6 }}>※ {checkInMessage}</div>
+            )}
+          </div>
         )}
 
         {!isPast && isFirebaseConfigured && (
