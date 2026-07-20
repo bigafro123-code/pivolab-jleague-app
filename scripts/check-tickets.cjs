@@ -2,7 +2,7 @@
 //
 // 常設の「チケット発売スケジュール」ページを持つクラブを定期的に巡回し、
 // まだ判明していない試合の発売日が新たに公開されていないかを確認する。
-// 見つかった場合は src/App.jsx のREAL_SCHEDULES内に直接 saleDate を追記する。
+// 見つかった場合は src/data/schedules.js のREAL_SCHEDULES内に直接 saleDate を追記する。
 //
 // 対象は「表形式で常に最新の情報が同じURLに載っているクラブ」に限定している
 // (個別記事形式・画像形式のクラブは対象外。誤読を防ぐため、日付の整合性が
@@ -11,7 +11,9 @@
 const fs = require('fs');
 const cheerio = require('cheerio');
 
-const APP_JSX_PATH = 'src/App.jsx';
+// 注意: App.jsxをdata/utils/componentsに分割した際にパスを追従させる必要がある。
+// (2026-07-20: REAL_SCHEDULESの移設に伴いsrc/App.jsx→src/data/schedules.jsへ修正)
+const SCHEDULES_PATH = 'src/data/schedules.js';
 
 // 対象クラブ: 常設の発売スケジュールページ
 const CLUBS = [
@@ -28,6 +30,8 @@ const CLUBS = [
   { teamId: 'gamba', url: 'https://www.gamba-osaka.net/ticket/schedule/' },
   { teamId: 'nagasaki', url: 'https://www.v-varen.com/tickets_new' },
   { teamId: 'verdy', url: 'https://www.verdy.co.jp/ticket/schedule/' },
+  { teamId: 'kawasaki', url: 'https://www.frontale.co.jp/tickets/' },
+  { teamId: 'kobe', url: 'https://www.vissel-kobe.co.jp/ticket/schedule/' },
 ];
 
 // 対戦相手チームIDの表記ゆれ(ページ内テキストとの照合に使う)
@@ -106,7 +110,7 @@ function buildSaneSaleDate(found, matchDateStr) {
 }
 
 async function main() {
-  let src = fs.readFileSync(APP_JSX_PATH, 'utf8');
+  let src = fs.readFileSync(SCHEDULES_PATH, 'utf8');
   let totalUpdates = 0;
 
   for (const club of CLUBS) {
@@ -159,7 +163,7 @@ async function main() {
   }
 
   if (totalUpdates > 0) {
-    fs.writeFileSync(APP_JSX_PATH, src, 'utf8');
+    fs.writeFileSync(SCHEDULES_PATH, src, 'utf8');
     console.log(`合計 ${totalUpdates} 件の発売日を自動反映しました。`);
   } else {
     console.log('新しい発売日は見つかりませんでした。');

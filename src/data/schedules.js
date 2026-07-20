@@ -207,13 +207,15 @@ export const REAL_SCHEDULES = {
     { matchday: 13, isHome: true, opponentId: 'hiroshima', date: '2026-10-31', kickoff: '14:00' },
   ],
   // 川崎フロンターレ(8〜10月分)
+  // ホームゲームの発売日は公式発表(チケット発売日と開催内容)より実データを反映
+  // 出典: https://www.frontale.co.jp/tickets/ 取得日時: 2026-07-20
   kawasaki: [
     { matchday: 1, isHome: false, opponentId: 'verdy', date: '2026-08-09', kickoff: '18:00' },
-    { matchday: 2, isHome: true, opponentId: 'kyoto', date: '2026-08-15', kickoff: '19:00' },
+    { matchday: 2, isHome: true, opponentId: 'kyoto', date: '2026-08-15', kickoff: '19:00', saleDate: '2026-08-01T10:00:00+09:00' },
     { matchday: 3, isHome: false, opponentId: 'hiroshima', date: '2026-08-22', kickoff: '19:15' },
-    { matchday: 4, isHome: true, opponentId: 'chiba', date: '2026-08-29', kickoff: '19:00' },
+    { matchday: 4, isHome: true, opponentId: 'chiba', date: '2026-08-29', kickoff: '19:00', saleDate: '2026-08-16T10:00:00+09:00' },
     { matchday: 5, isHome: false, opponentId: 'machida', date: '2026-09-02', kickoff: '19:00' },
-    { matchday: 6, isHome: true, opponentId: 'shimizu', venueOverride: 'MUFGスタジアム', date: '2026-09-06', kickoff: '19:00' },
+    { matchday: 6, isHome: true, opponentId: 'shimizu', venueOverride: 'MUFGスタジアム', date: '2026-09-06', kickoff: '19:00', saleDate: '2026-08-23T10:00:00+09:00' },
     { matchday: 7, isHome: false, opponentId: 'mito', date: '2026-09-12', kickoff: '18:00' },
     { matchday: 8, isHome: true, opponentId: 'kashima', date: '2026-09-19' },
     { matchday: 9, isHome: true, opponentId: 'nagoya', date: '2026-10-11', kickoff: '16:00' },
@@ -258,13 +260,15 @@ export const REAL_SCHEDULES = {
     { matchday: 13, isHome: true, opponentId: 'shimizu', date: '2026-10-31', saleDate: '2026-10-10T12:00:00+09:00' },
   ],
   // ヴィッセル神戸(8〜10月分)
+  // ホームゲームの発売日は公式発表(チケット発売スケジュール)より実データを反映
+  // 出典: https://www.vissel-kobe.co.jp/ticket/schedule/ 取得日時: 2026-07-20
   kobe: [
     { matchday: 1, isHome: false, opponentId: 'fukuoka', date: '2026-08-08', kickoff: '19:00' },
-    { matchday: 2, isHome: true, opponentId: 'fctokyo', date: '2026-08-15', kickoff: '19:00' },
+    { matchday: 2, isHome: true, opponentId: 'fctokyo', date: '2026-08-15', kickoff: '19:00', saleDate: '2026-07-22T10:00:00+09:00' },
     { matchday: 3, isHome: false, opponentId: 'ynmarinos', date: '2026-08-22', kickoff: '19:30' },
-    { matchday: 4, isHome: true, opponentId: 'cerezo', date: '2026-08-29', kickoff: '19:00' },
+    { matchday: 4, isHome: true, opponentId: 'cerezo', date: '2026-08-29', kickoff: '19:00', saleDate: '2026-07-22T10:00:00+09:00' },
     { matchday: 5, isHome: false, opponentId: 'verdy', date: '2026-09-02', kickoff: '19:00' },
-    { matchday: 6, isHome: true, opponentId: 'nagasaki', date: '2026-09-06', kickoff: '19:00' },
+    { matchday: 6, isHome: true, opponentId: 'nagasaki', date: '2026-09-06', kickoff: '19:00', saleDate: '2026-07-29T10:00:00+09:00' },
     { matchday: 7, isHome: true, opponentId: 'kashima', date: '2026-09-12' },
     { matchday: 8, isHome: false, opponentId: 'gamba', date: '2026-09-20', kickoff: '17:00' },
     { matchday: 9, isHome: false, opponentId: 'kashiwa', date: '2026-10-09', kickoff: '19:00' },
@@ -274,17 +278,19 @@ export const REAL_SCHEDULES = {
     { matchday: 13, isHome: true, opponentId: 'nagoya', date: '2026-10-31' },
   ],
   // ジェフユナイテッド千葉(8〜10月分)
-  // 発売日は公式に「決定次第お知らせ」と確認済みのため未設定
+  // ホームゲームの発売日は公式発表より実データを反映(一般販売の開始時刻は
+  // 記事に明記が無かったため、他クラブと同じ10:00と仮定して反映)
+  // 出典: https://jefunited.co.jp/news/detail/5285 取得日時: 2026-07-20
   chiba: [
     { matchday: 1, isHome: false, opponentId: 'hiroshima', date: '2026-08-08', kickoff: '19:15' },
-    { matchday: 2, isHome: true, opponentId: 'machida', date: '2026-08-15', kickoff: '19:00' },
+    { matchday: 2, isHome: true, opponentId: 'machida', date: '2026-08-15', kickoff: '19:00', saleDate: '2026-08-03T10:00:00+09:00' },
     { matchday: 3, isHome: false, opponentId: 'fctokyo', venueOverride: 'MUFGスタジアム', date: '2026-08-21', kickoff: '19:30' },
     { matchday: 4, isHome: false, opponentId: 'kawasaki', date: '2026-08-29', kickoff: '19:00' },
-    { matchday: 5, isHome: true, opponentId: 'okayama', date: '2026-09-02', kickoff: '19:00' },
+    { matchday: 5, isHome: true, opponentId: 'okayama', date: '2026-09-02', kickoff: '19:00', saleDate: '2026-08-10T10:00:00+09:00' },
     { matchday: 6, isHome: true, opponentId: 'gamba', date: '2026-09-06', kickoff: '18:00' },
     { matchday: 7, isHome: false, opponentId: 'verdy', date: '2026-09-13', kickoff: '18:00' },
     { matchday: 8, isHome: false, opponentId: 'shimizu', date: '2026-09-19', kickoff: '18:30' },
-    { matchday: 9, isHome: true, opponentId: 'nagasaki', date: '2026-10-11', kickoff: '14:00' },
+    { matchday: 9, isHome: true, opponentId: 'nagasaki', date: '2026-10-11', kickoff: '14:00', saleDate: '2026-09-14T10:00:00+09:00' },
     { matchday: 10, isHome: true, opponentId: 'ynmarinos', date: '2026-10-17', kickoff: '14:00' },
     { matchday: 11, isHome: false, opponentId: 'urawa', date: '2026-10-21', kickoff: '19:30' },
     { matchday: 12, isHome: false, opponentId: 'cerezo', date: '2026-10-25', kickoff: '15:00' },
