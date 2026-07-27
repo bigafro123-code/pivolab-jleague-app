@@ -138,6 +138,49 @@ function buildSaneSaleDate(found, matchDateStr) {
   return jstIso;
 }
 
+// REAL_SCHEDULESは各クラブの視点ごとに別々のエントリを持つ構造のため、
+// 同じ試合でもホーム側にしかsaleDateが反映されず、アウェイ側は「発売日未定」の
+// ままになってしまう(このスクリプトはホームゲームしか巡回しないため)。
+// 毎回の実行の最後に、片方に判明済みのsaleDateがあればもう片方のエントリにも
+// ミラーリングし、常に両チーム分が一致した状態を保つ。
+function mirrorSaleDatesAcrossTeams(src) {
+  const REAL_SCHEDULES = eval('(' + src.slice(src.indexOf('{', src.indexOf('export const REAL_SCHEDULES')), src.lastIndexOf('};', src.indexOf('// ---- 遠征記録')) + 1) + ')');
+
+  const updates = [];
+  for (const [teamId, fixtures] of Object.entries(REAL_SCHEDULES)) {
+    for (const f of fixtures) {
+      if (f.saleDate) continue;
+      const opp = REAL_SCHEDULES[f.opponentId];
+      if (!opp) continue;
+      const match = opp.find((e) => e.opponentId === teamId && e.date === f.date);
+      if (!match || !match.saleDate) continue;
+      updates.push({ teamId, matchday: f.matchday, opponentId: f.opponentId, date: f.date, saleDate: match.saleDate });
+    }
+  }
+
+  let applied = 0;
+  for (const u of updates) {
+    const teamArrayRegex = new RegExp(`(${u.teamId}:\\s*\\[)([\\s\\S]*?)(\\n\\s*\\],)`);
+    const teamMatch = src.match(teamArrayRegex);
+    if (!teamMatch) continue;
+
+    const teamBlock = teamMatch[2];
+    const entryRegex = new RegExp(
+      `\\{\\s*matchday:\\s*${u.matchday},\\s*isHome:\\s*(?:true|false),\\s*opponentId:\\s*'${u.opponentId}'[^}]*?date:\\s*'${u.date}'[^}]*?\\}`
+    );
+    const entryMatch = teamBlock.match(entryRegex);
+    if (!entryMatch || entryMatch[0].includes('saleDate')) continue;
+
+    const updatedEntry = entryMatch[0].replace(/\s*\}$/, `, saleDate: '${u.saleDate}' }`);
+    const newTeamBlock = teamBlock.replace(entryMatch[0], updatedEntry);
+    src = src.replace(teamMatch[0], teamMatch[1] + newTeamBlock + teamMatch[3]);
+    applied++;
+    console.log(`[mirror] ${u.teamId} vs ${u.opponentId} (${u.date}): ${u.opponentId}側の発売日を反映`);
+  }
+
+  return { src, applied };
+}
+
 async function main() {
   let src = fs.readFileSync(SCHEDULES_PATH, 'utf8');
   let totalUpdates = 0;
@@ -190,6 +233,10 @@ async function main() {
       src = src.replace(teamMatch[0], teamMatch[1] + newTeamBlock + teamMatch[3]);
     }
   }
+
+  const mirrored = mirrorSaleDatesAcrossTeams(src);
+  src = mirrored.src;
+  totalUpdates += mirrored.applied;
 
   if (totalUpdates > 0) {
     fs.writeFileSync(SCHEDULES_PATH, src, 'utf8');
