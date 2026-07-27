@@ -133,9 +133,12 @@ export default function JLeagueTicketApp() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 8, height: 36, borderRadius: 2, background: selectedTeam.color, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: 22, lineHeight: 1.1 }}>
+              <h1 style={{ margin: 0, fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: 22, lineHeight: 1.1 }}>
                 {selectedTeam.name}
-              </div>
+              </h1>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#86868b' }}>
+                Jリーグ(明治安田J1)の試合日程とチケット発売日をチームごとにチェック
+              </p>
             </div>
             {REAL_SCHEDULES[selectedTeam.id] && (
               <span
