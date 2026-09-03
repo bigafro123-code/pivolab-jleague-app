@@ -33,8 +33,8 @@ jobs:
         run: |
           git config user.name "ticket-checker-bot"
           git config user.email "actions@users.noreply.github.com"
-          if ! git diff --quiet -- src/App.jsx; then
-            git add src/App.jsx
+          if ! git diff --quiet -- src/data/schedules.js; then
+            git add src/data/schedules.js
             git commit -m "chore: チケット発売日の自動更新 ($(date -u +'%Y-%m-%d'))"
             git push
           else
