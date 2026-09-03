@@ -30,7 +30,9 @@ const CLUBS = [
   { teamId: 'gamba', url: 'https://www.gamba-osaka.net/ticket/schedule/' },
   { teamId: 'nagasaki', url: 'https://www.v-varen.com/tickets_new' },
   { teamId: 'verdy', url: 'https://www.verdy.co.jp/ticket/schedule/' },
-  { teamId: 'kawasaki', url: 'https://www.frontale.co.jp/tickets/' },
+  // kawasakiは対象外: frontale.co.jp/tickets/はJavaScriptで動的に描画される
+  // ページで、生HTMLの取得(fetch+cheerio)には試合情報が一切含まれないため、
+  // このスクリプトの方式では原理的に自動チェックできない。手動確認が必要。
   { teamId: 'kobe', url: 'https://www.vissel-kobe.co.jp/ticket/schedule/' },
   // format: 'slash' = 「一般」の文字列が日付の近くになく、表の列位置(最後の日時)で
   // 一般販売を判定する必要があるページ
@@ -114,8 +116,32 @@ function findSaleDateSlashFormat(text, opponentHints) {
   return null;
 }
 
+// 「M/D(曜)HH:MM」ではなく、各段階の日付に時刻が付かず「M/D(曜)」だけが
+// 並ぶページ向け(発売時間はページ内に「各発売日の10:00〜」のように一括で
+// 記載されているため10:00固定とする)。試合日自体は全角括弧「（）」で
+// 書かれていることが多く、半角括弧の日付のみを拾うことで誤検出を避ける
+// (例: 川崎フロンターレ公式サイト)。ブロックの終端は各行の末尾に必ず
+// 現れる「開催内容」で区切る。
+function findSaleDateSlashNoTimeFormat(text, opponentHints) {
+  for (const hint of opponentHints) {
+    const idx = text.indexOf(hint);
+    if (idx === -1) continue;
+    const blockEnd = text.indexOf('開催内容', idx);
+    if (blockEnd === -1) continue;
+    const windowText = text.slice(idx, blockEnd);
+
+    const matches = [...windowText.matchAll(/(\d{1,2})\/(\d{1,2})\([^)]{1}\)/g)];
+    if (matches.length === 0) continue;
+    const [, month, day] = matches[matches.length - 1];
+    return { month: Number(month), day: Number(day), hour: 10, minute: 0 };
+  }
+  return null;
+}
+
 function findSaleDateInText(text, opponentHints, format) {
-  return format === 'slash' ? findSaleDateSlashFormat(text, opponentHints) : findSaleDateKanjiFormat(text, opponentHints);
+  if (format === 'slash') return findSaleDateSlashFormat(text, opponentHints);
+  if (format === 'slash-no-time') return findSaleDateSlashNoTimeFormat(text, opponentHints);
+  return findSaleDateKanjiFormat(text, opponentHints);
 }
 
 function resolveSaleYear(saleMonth, matchDateStr) {
